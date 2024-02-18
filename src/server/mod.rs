@@ -31,16 +31,22 @@ impl Server {
   pub fn register(&mut self, name: String, service: Service) {
     self.services.lock().unwrap().insert(name, service);
   }
-
+  
   pub fn run(&self, addr: &str) {
+    let addr: Vec<&str> = addr.split("@").collect();
+    let (protocol, addr) = (addr[0], addr[1]);
     let listener = TcpListener::bind(addr).unwrap();
-
+    
     for stream in listener.incoming() {
       match stream {
         Ok(stream) => {
+          let protocol_copy = protocol.to_string();
           let services = Arc::clone(&self.services);
-          self.thread_pool.execute(|| {
-            Self::connect(stream, services);
+          self.thread_pool.execute(move || {
+            match &protocol_copy[..] {
+              "http" => Self::connect_http(stream, services),
+              _ => Self::connect_tcp(stream, services),
+            }
           });
         }
         Err(e) => {
@@ -50,7 +56,11 @@ impl Server {
     }
   }
 
-  fn connect(stream: TcpStream, services: Arc<Mutex<HashMap<String, Service>>>) {
+  fn connect_http(stream: TcpStream, services: Arc<Mutex<HashMap<String, Service>>>) {
+
+  }
+
+  fn connect_tcp(stream: TcpStream, services: Arc<Mutex<HashMap<String, Service>>>) {
     let codec = Codec::new();
     codec.bind(stream);
     let message: Message = codec.decode().unwrap();

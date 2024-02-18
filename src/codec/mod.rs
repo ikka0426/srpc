@@ -39,8 +39,8 @@ impl Header {
     error: Option<Error>
   ) -> Self {
     Header { 
-      service: service, 
-      method: method, 
+      service, 
+      method, 
       seq, 
       // time,
       error 
