@@ -6,7 +6,7 @@ use std::net::TcpStream;
 use std::io::{ Read, Write };
 use std::sync::Mutex;
 
-use super::server::remote_call::Error;
+use super::error::Error;
 
 pub const MAGIC_NUMBER: i32 = 0x37373737;
 

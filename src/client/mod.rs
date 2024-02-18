@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::thread;
 
 use super::codec::*;
-use super::server::remote_call::Error;
+use super::error::Error;
 
 struct Call {
   seq: usize,
@@ -128,7 +128,7 @@ impl Client {
           }
         }
         None => {
-          error = Error::OtherError;
+          error = Error::OtherError("".to_string());
           println!("{}", error);
           break;
         }

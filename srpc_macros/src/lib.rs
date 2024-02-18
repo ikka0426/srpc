@@ -16,7 +16,7 @@ use syn::{ parse, ItemImpl, Type, ImplItem, FnArg, Pat };
 /// These macros automatically import the following items, so the example code needs to be used in the parent package environment:
 /// 
 /// - `srpc::server::remote_call::RemoteCall`: Used for remote method invocation.
-/// - `srpc::server::remote_call::Error`: Used for error handling.
+/// - `srpc::error::Error`: Used for error handling.
 /// - `std::any::Any`: Used for handling values of various types.
 /// 
 /// # Examples
@@ -94,7 +94,7 @@ pub fn remote(_: TokenStream, input: TokenStream) -> TokenStream {
         stringify!(#method_name_code) => {
           let (#(#arg_name_code,)*) = match serde_json::from_value::<(#(#arg_type_code,)*)>(args) {
             Ok(value) => value,
-            Err(_) => return Err(srpc::server::remote_call::Error::ArgumentsNotMatchError(#panic_message.to_string()))
+            Err(_) => return Err(srpc::error::Error::ArgumentsNotMatchError(#panic_message.to_string()))
           };
 
           Ok(serde_json::to_value(self.#method_name_code(#(#arg_name_code,)*)).unwrap())
@@ -112,11 +112,11 @@ pub fn remote(_: TokenStream, input: TokenStream) -> TokenStream {
     #ast
     
     impl srpc::server::remote_call::RemoteCall for #service_name_code {
-      fn call(&self, method: &str, args: serde_json::Value) -> Result<serde_json::Value, srpc::server::remote_call::Error> {
+      fn call(&self, method: &str, args: serde_json::Value) -> Result<serde_json::Value, srpc::error::Error> {
         match method {
           #(#match_branch_code)*
           _ => {
-            Err(srpc::server::remote_call::Error::NoSuchMethodError)
+            Err(srpc::error::Error::NoSuchMethodError)
           }
         }
       }
