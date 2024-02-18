@@ -43,10 +43,7 @@ impl Server {
           let protocol_copy = protocol.to_string();
           let services = Arc::clone(&self.services);
           self.thread_pool.execute(move || {
-            match &protocol_copy[..] {
-              "http" => Self::connect_http(stream, services),
-              _ => Self::connect_tcp(stream, services),
-            }
+            Self::connect(stream, services, protocol_copy);
           });
         }
         Err(e) => {
@@ -56,22 +53,52 @@ impl Server {
     }
   }
 
-  fn connect_http(stream: TcpStream, services: Arc<Mutex<HashMap<String, Service>>>) {
-
-  }
-
-  fn connect_tcp(stream: TcpStream, services: Arc<Mutex<HashMap<String, Service>>>) {
+  fn connect(stream: TcpStream, services: Arc<Mutex<HashMap<String, Service>>>, protocol: String) {
     let codec = Codec::new();
     codec.bind(stream);
-    let message: Message = codec.decode().unwrap();
-    if message.magic_number != MAGIC_NUMBER {
-      eprintln!("** Server Error: magic number mismatched.");
-      return;
+    // let message: Message = codec.decode().unwrap();
+    // if message.magic_number != MAGIC_NUMBER {
+    //   eprintln!("** Server Error: magic number mismatched.");
+    //   return;
+    // }
+    match &protocol[..] {
+      "http" => Self::serve_http(codec, services),
+      _ => Self::serve_tcp(codec, services)
     }
-    Self::serve(codec, services);
   }
   
-  fn serve(codec: Codec, services: Arc<Mutex<HashMap<String, Service>>>) {
+  fn serve_http(codec: Codec, services: Arc<Mutex<HashMap<String, Service>>>) {
+    loop {
+      let x: String = codec.read_plain().unwrap();
+      let request = x.split(" ").collect::<Vec<&str>>()[0];
+      match request {
+        "GET" => {
+          let status_line = "HTTP/1.1 200 OK";
+          let debug_html = "
+            <html>
+              <head>
+                <title>SRPC Debug Page</title>
+              </head>
+              <body>
+                <h2>SRPC Services</h2>
+              </body>
+            </html>
+          ";
+          let len = debug_html.len();
+          let response = format!("{status_line}\r\nContent-Length: {len}\r\n\r\n{debug_html}");
+          codec.write_plain(response).unwrap();
+        }
+        "CONNECT" => {
+
+        }
+        _ => {
+
+        }
+      }
+    }
+  }
+
+  fn serve_tcp(codec: Codec, services: Arc<Mutex<HashMap<String, Service>>>) {
     loop {
       let (header, body): (Header, Body<Value>) = codec.decode().unwrap();
       // println!("server got new call from client \n{:#?}", header);

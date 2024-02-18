@@ -90,7 +90,8 @@ impl Codec {
       match stream_locked.as_mut().unwrap().read_exact(&mut buf) {
         Ok(_) => {
           let len: usize = usize::from_ne_bytes(buf);
-          let mut message = vec![0; len];
+          println!("{len}");
+          let mut message = vec![0; 10000];
           // std::thread::sleep(std::time::Duration::new(1, 0));
           match stream_locked.as_mut().unwrap().read_exact(&mut message) {
             Ok(_) => {
@@ -102,6 +103,7 @@ impl Codec {
               continue;
             }
             Err(e) => {
+              dbg!(e);
               return Err(Error::SystemIOError())
             }
           }
@@ -110,6 +112,34 @@ impl Codec {
           continue;
         }
         Err(e) => {
+          dbg!(String::from_utf8_lossy(&buf));
+          return Err(Error::SystemIOError())
+        }
+      }
+    }
+  }
+
+  pub fn write_plain(&self, buf: String) -> Result<(), Error> {
+    let mut stream_locked = self.stream.lock().unwrap();
+    match stream_locked.as_mut().unwrap().write(buf.as_bytes()) {
+      Ok(_) => Ok(()),
+      Err(e) => Err(Error::OtherError(e.to_string()))
+    }
+  }
+
+  pub fn read_plain(&self) -> Result<String, Error> {
+    let mut buf = [0; 1024];
+    loop {
+      let mut stream_locked = self.stream.lock().unwrap();
+      match stream_locked.as_mut().unwrap().read(&mut buf) {
+        Ok(_) => {
+          return Ok(String::from_utf8_lossy(&buf).to_string())
+        }
+        Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+          continue;
+        }
+        Err(e) => {
+          dbg!(e);
           return Err(Error::SystemIOError())
         }
       }
