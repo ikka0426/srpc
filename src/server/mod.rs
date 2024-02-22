@@ -73,17 +73,29 @@ impl Server {
       let request = x.split(" ").collect::<Vec<&str>>()[0];
       match request {
         "GET" => {
+          let services_locked = services.lock().unwrap();
+          let mut html_trs = Vec::new();
+          for service in &*services_locked {
+            let html_tr = format!("<tr><td>{}</td></tr>", service.0);
+            html_trs.push(html_tr);
+          }
           let status_line = "HTTP/1.1 200 OK";
-          let debug_html = "
+          let debug_html = format!("
             <html>
-              <head>
-                <title>SRPC Debug Page</title>
-              </head>
-              <body>
-                <h2>SRPC Services</h2>
-              </body>
+            <head>
+            <title>SRPC Debug Page</title>
+            </head>
+            <body>
+            <h2>SRPC Services</h2>
+            <table>
+            <tr>
+            <th>Services</th>
+            </tr>
+            {}
+            <table>
+            </body>
             </html>
-          ";
+          ", html_trs.concat());
           let len = debug_html.len();
           let response = format!("{status_line}\r\nContent-Length: {len}\r\n\r\n{debug_html}");
           codec.write_plain(response).unwrap();
